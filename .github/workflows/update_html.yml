@@ -1,0 +1,44 @@
+name: Update HTML File Every 5 Hours
+
+on:
+  schedule:
+    - cron: '0 */5 * * *'  # Run every 5 hours
+
+jobs:
+  update-html:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GPD }}  # Use your custom token name here
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install requests beautifulsoup4
+
+      - name: Run Python script to generate HTML
+        run: |
+          python generate_html.py
+
+      - name: Commit and push changes
+        env:
+          GPD: ${{ secrets.GPD }}  # Use your custom token name here
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          if [[ -n $(git status --porcelain) ]]; then
+            git add index.html
+            git commit -m "Auto-generated HTML file at $(date)"
+            git push https://x-access-token:${GPD}@github.com/${{ github.repository }}.git main
+          else
+            echo "No changes to commit."
+          fi
