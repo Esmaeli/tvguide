@@ -1,8 +1,12 @@
 name: Update HTML File Every 5 Hours
 
 on:
+  # اجرای خودکار هر 5 ساعت یکبار
   schedule:
     - cron: '0 */5 * * *'  # Run every 5 hours
+
+  # اجرای دستی
+  workflow_dispatch:
 
 jobs:
   update-html:
