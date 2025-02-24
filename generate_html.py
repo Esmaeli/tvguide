@@ -6,7 +6,7 @@ import re
 # لیست ورزش‌های پشتیبانی‌شده
 SUPPORTED_SPORTS = {
     "soccer", "cricket", "field hockey", "tennis", "boxing", 
-    "wwe", "basketball", "handball", "lacrosse", "volleyball", "hockey"
+    "wwe", "basketball", "handball", "volleyball", "hockey"
 }
 
 def convert_to_tehran_time(uk_time_str):
@@ -208,16 +208,14 @@ def generate_complete_html(main_content):
                 <ul class="nav-links">
                     <li><a href="#" data-sport="all">All</a></li>
                     <li><a href="#" data-sport="soccer">Soccer</a></li>
-                    <li><a href="#" data-sport="cricket">Cricket</a></li>
-                    <li><a href="#" data-sport="field-hockey">Field Hockey</a></li>
-                    <li><a href="#" data-sport="tennis">Tennis</a></li>
-                    <li><a href="#" data-sport="boxing">Boxing</a></li>
-                    <li><a href="#" data-sport="wwe">WWE</a></li>
+                    <li><a href="#" data-sport="volleyball">Volleyball</a></li>
                     <li><a href="#" data-sport="basketball">Basketball</a></li>
                     <li><a href="#" data-sport="handball">Handball</a></li>
-                    <li><a href="#" data-sport="lacrosse">Lacrosse</a></li>
-                    <li><a href="#" data-sport="volleyball">Volleyball</a></li>
+                    <li><a href="#" data-sport="tennis">Tennis</a></li>
                     <li><a href="#" data-sport="hockey">Hockey</a></li>
+                    <li><a href="#" data-sport="cricket">Cricket</a></li>
+                    <li><a href="#" data-sport="boxing">Boxing</a></li>
+                    <li><a href="#" data-sport="wwe">WWE</a></li>
                 </ul>
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="Search events...">
