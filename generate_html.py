@@ -1,6 +1,7 @@
 import json
 import re
-pip install -r requirements.txt
+import requests
+import pytz
 from datetime import datetime, timedelta
 
 # Function to fetch data from the internet
