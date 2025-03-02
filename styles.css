@@ -61,7 +61,7 @@ header nav ul.nav-links li a {
     color: #fff;
     text-decoration: none;
     font-size: 1rem;
-    transition: color 0.3s ease;
+    transition: color 0.3s ease, background-color 0.3s ease;
 }
 
 header nav ul.nav-links li a:hover {
@@ -96,12 +96,58 @@ header nav ul.nav-links li a:hover {
     color: #fff; /* Keep white text on focus */
 }
 
-/* Mobile Search Icon */
-@media (max-width: 768px) {
-    .menu-icon {
-        display: block; /* Show hamburger menu icon */
-    }
+/* Dropdown Menu Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
 
+.dropdown .dropbtn {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+}
+
+.dropdown:hover .dropbtn {
+    background-color: #00bcd4;
+    color: #fff;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #1a1a1a;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    top: 100%; /* Position below the dropdown button */
+    left: 0;
+    border-radius: 5px;
+}
+
+.dropdown-content a {
+    color: #fff;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: #000; /* Black background on hover */
+    color: #00bcd4; /* Blue text on hover */
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Responsive Design */
+/* Tablet and Mobile Devices */
+@media (max-width: 1024px) {
     header nav ul.nav-links {
         display: none; /* Hide menu by default */
         flex-direction: column;
@@ -119,6 +165,10 @@ header nav ul.nav-links li a:hover {
         display: flex; /* Show menu when active */
     }
 
+    .menu-icon {
+        display: block; /* Show hamburger menu icon */
+    }
+
     .search-box {
         display: flex;
         justify-content: center; /* Center the search box */
@@ -130,6 +180,21 @@ header nav ul.nav-links li a:hover {
         width: 80%; /* Take 80% of the row width */
         background-color: #000; /* Black background */
         color: #fff; /* White text */
+    }
+}
+
+/* Mobile Devices */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    header nav ul.nav-links li a {
+        font-size: 0.9rem;
+    }
+
+    .search-box input {
+        width: 70%; /* Reduce width for smaller screens */
     }
 }
 
@@ -146,8 +211,8 @@ h2 {
 }
 
 .event-cards {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr; /* One card per row */
     gap: 2rem; /* Increased gap between cards */
 }
 
@@ -156,10 +221,9 @@ h2 {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
-    width: 100%;
-    max-width: 100%;
+    width: 80%; /* Card takes up 80% of the row */
+    margin: 0 auto; /* Center the card */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    margin-bottom: 1.5rem; /* Added margin-bottom for extra spacing */
 }
 
 .card:hover {
@@ -167,16 +231,11 @@ h2 {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-.card.special-event {
-    background-color: #000; /* Black background for special events */
-    color: #fff; /* White text for special events */
-}
-
 .card h3 {
     font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: inherit; /* Inherit color from parent */
-    text-align: center;
+    margin-bottom: 1rem;
+    color: #333; /* Dark text color */
+    text-align: center; /* Center the title */
 }
 
 .card .teams {
@@ -202,9 +261,16 @@ h2 {
     flex: 0 0 auto; /* Keep "vs" fixed in the center */
 }
 
+.card .event-name {
+    font-size: 1.2rem;
+    font-weight: bold; /* Make it bold */
+    text-align: center; /* Center the text */
+    margin-bottom: 1rem; /* Add spacing below */
+}
+
 .card .time {
     font-size: 1rem;
-    color: #00bcd4;
+    color: #000; /* Black text color for time */
     text-align: center;
     margin-bottom: 0.5rem;
 }
@@ -227,14 +293,4 @@ footer {
 
 footer p {
     font-size: 0.9rem;
-}
-
-.card .event-title {
-    display: flex;
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    height: 50px; /* Adjust height as needed */
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: inherit; /* Inherit color from parent */
 }
