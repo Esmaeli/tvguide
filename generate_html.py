@@ -1,251 +1,231 @@
-import requests
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+import json
 import re
+import requests
+import pytz
+from datetime import datetime, timedelta
 
-# لیست ورزش‌های پشتیبانی‌شده
-SUPPORTED_SPORTS = {
-    "soccer", "cricket", "field hockey", "tennis", "boxing", 
-    "wwe", "basketball", "handball", "volleyball", "hockey"
-}
-
-def convert_to_tehran_time(uk_time_str):
-    """ تبدیل زمان UK به ساعت تهران """
-    if uk_time_str.strip() == "":
+# Function to fetch data from the internet
+def fetch_data_from_url(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad status codes
+        return response.json()  # Parse JSON data
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from {url}: {e}")
         return None
-    uk_time = datetime.strptime(uk_time_str, "%H:%M")
-    tehran_time = uk_time + timedelta(hours=3, minutes=30)
-    return tehran_time.strftime("%H:%M")
 
-def normalize_sport_name(sport_name):
-    """ نرمال‌سازی نام ورزش """
-    if 'hockey' in sport_name:
-        return 'hockey'
-    elif 'wwe' in sport_name:
-        return 'wwe'
-    elif 'tennis' in sport_name:
-        return 'tennis'
-    else:
-        # حذف فضاهای اضافی و استاندارد کردن نام
-        return sport_name.strip().lower()
+# Function to convert UK time to local user time
+def convert_to_local_time(uk_time_str):
+    try:
+        if not uk_time_str or uk_time_str == 'N/A':  # Check for empty or invalid time
+            return 'N/A'
 
-def extract_sport_from_tag(tag):
-    """ استخراج ورزش از تگ‌های <h2> یا <b> """
-    if tag.name == 'h2':
-        sport = tag.get_text(strip=True).lower()
-        return normalize_sport_name(sport)
-    elif tag.name == 'b':
-        # بررسی کلاس تگ <b>
-        sport_class = tag.get('class', [''])[0].lower()
-        if any(s in sport_class for s in SUPPORTED_SPORTS):
-            return normalize_sport_name(sport_class)
-        
-        # بررسی متن داخل تگ <b>
-        sport_text = tag.get_text(strip=True).lower()
-        if any(s in sport_text for s in SUPPORTED_SPORTS):
-            return normalize_sport_name(sport_text)
-    
-    return None
+        # Define UK time format and parse the input string
+        uk_time_format = "%H:%M"
+        uk_time = datetime.strptime(uk_time_str, uk_time_format)
 
-def extract_event_info(url):
-    """ استخراج اطلاعات رویدادها از صفحه وب """
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    events = []
-    strong_tags = soup.find_all('strong')
-    
-    for tag in strong_tags:
-        event_text = ''.join(tag.find_all(text=True, recursive=False)).strip()
-        
-        time = event_text.split()[0]
-        time = ''.join([char for char in time if char.isdigit() or char == ':'])
-        
-        tehran_time = convert_to_tehran_time(time)
-        if tehran_time is None:
-            continue
-        
-        rest_of_text = ' '.join(event_text.split()[1:])
-        
-        if ':' in rest_of_text:
-            league = rest_of_text.split(':')[0].strip()
-            teams_part = rest_of_text.split(':')[1].strip()
+        # Assume UK is UTC+0
+        utc_time = pytz.utc.localize(datetime.combine(datetime.today(), uk_time.time()))
+
+        # Get the local timezone
+        local_tz = pytz.timezone('Asia/Tehran')  # Change 'Asia/Tehran' to your desired timezone
+        local_time = utc_time.astimezone(local_tz)
+
+        # Return only the time in HH:MM format
+        return local_time.strftime("%H:%M")
+    except Exception as e:
+        print(f"Error converting time: {e}")
+        return uk_time_str  # Return original time if conversion fails
+
+# Function to extract channels from event data
+def extract_channels(event):
+    channels_list = []
+
+    # Process 'channels' field
+    if isinstance(event.get('channels'), dict):  # If 'channels' is a dictionary
+        channels_list += [channel['channel_name'] for channel in event['channels'].values() if isinstance(channel, dict) and 'channel_name' in channel]
+    elif isinstance(event.get('channels'), list):  # If 'channels' is a list
+        channels_list += [channel['channel_name'] for channel in event['channels'] if isinstance(channel, dict) and 'channel_name' in channel]
+    elif isinstance(event.get('channels'), str):  # If 'channels' is a string
+        channels_list.append(event['channels'])
+
+    # Process 'channels2' field
+    if isinstance(event.get('channels2'), dict):  # If 'channels2' is a dictionary
+        channels_list += [channel['channel_name'] for channel in event['channels2'].values() if isinstance(channel, dict) and 'channel_name' in channel]
+    elif isinstance(event.get('channels2'), list):  # If 'channels2' is a list
+        channels_list += [channel['channel_name'] for channel in event['channels2'] if isinstance(channel, dict) and 'channel_name' in channel]
+    elif isinstance(event.get('channels2'), str):  # If 'channels2' is a string
+        channels_list.append(event['channels2'])
+
+    return channels_list
+
+# Function to detect the type of event and format it for HTML
+def format_event(event, category):
+    event_text = event.get('event', '')  # Use .get() to avoid KeyError
+    time = event.get('time', 'N/A')  # Provide a default value if 'time' is missing
+
+    # Extract channels from the event
+    channels = extract_channels(event)
+
+    # Convert UK time to local time
+    local_time = convert_to_local_time(time)
+
+    # Detect the type of event (using Regular Expression)
+    if ':' in event_text and re.search(r'\b(vs|\.vs|x)\b', event_text, re.IGNORECASE):  # Sporting event with two teams
+        event_parts = event_text.split(':')
+        category_name = event_parts[0].strip()
+        teams_part = event_parts[1].strip()
+
+        # Extract Team 1 and Team 2 using Regular Expression
+        match = re.search(r'(.+?)\s*(vs|\.vs|x)\s*(.+)', teams_part, re.IGNORECASE)
+        if match:
+            team_1 = match.group(1).strip()
+            team_2 = match.group(3).strip()
+            return (
+                f'<div class="card" data-sport="{category}">'
+                f'<h3>{category_name}</h3>'
+                f'<div class="teams">'
+                f'<span class="team-left">{team_1}</span>'
+                f'<span class="vs">vs</span>'
+                f'<span class="team-right">{team_2}</span>'
+                f'</div>'
+                f'<p class="time">⏰ {local_time}</p>'  # Display local time
+                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+                f'</div>\n'
+            )
+
+    elif ':' in event_text and not re.search(r'\b(vs|\.vs|x)\b', event_text, re.IGNORECASE):  # Single sporting event
+        event_parts = event_text.split(':')
+        category_name = event_parts[0].strip()
+        single_event = event_parts[1].strip()
+        return (
+            f'<div class="card single-event" data-sport="{category}">'
+            f'<h3>{category_name}</h3>'
+            f'<p class="event-name">{single_event.upper()}</p>'  # Convert single events to uppercase
+            f'<p class="time">⏰ {local_time}</p>'  # Display local time
+            f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+            f'</div>\n'
+        )
+
+    elif 'Season' in event_text or 'Episode' in event_text:  # TV Shows/Movies
+        if 'Season' in event_text and 'Episode' in event_text:
+            title, episode = event_text.split(', Episode')
+            return (
+                f'<div class="card" data-sport="{category}">'
+                f'<h3>{title.strip()}</h3>'
+                f'<p class="event-name">Episode {episode.strip().upper()}</p>'  # Convert episode name to uppercase
+                f'<p class="time">⏰ {local_time}</p>'  # Display local time
+                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+                f'</div>\n'
+            )
         else:
-            league = rest_of_text
-            teams_part = ''
-        
-        # اگر بخش تیم‌ها خالی باشد و هیچ توضیحی نداشته باشد، این رویداد را نادیده بگیر
-        if not teams_part.strip() and not league.strip():
-            continue
-        
-        # تشخیص نوع رویداد: دو تیمی یا تک‌نفره/ایونت
-        is_single_event = True
-        team_left, team_right = '', ''
-        separators = [r'\s*vs\s*', r'\s*\.vs\s*', r'\s*x\s*']
-        for separator in separators:
-            if re.search(separator, teams_part):
-                is_single_event = False
-                teams = re.split(separator, teams_part)
-                if len(teams) == 2:
-                    team_left = teams[0].strip()
-                    team_right = teams[1].strip()
-                break
-        
-        channels = []
-        for a in tag.find_all('a'):
-            channel_text = a.get_text(strip=True)
-            channel_text = channel_text.split('(')[0].strip()
-            channels.append(channel_text)
-        
-        sport = None
-        parent = tag.find_parent()
-        if parent:
-            h2_tag = parent.find_previous_sibling('h2')
-            if h2_tag:
-                sport = extract_sport_from_tag(h2_tag)
-            
-            if not sport:
-                b_tag = parent.find_previous_sibling('b')
-                if b_tag:
-                    sport = extract_sport_from_tag(b_tag)
-        
-        if not sport:
-            sport = league.split(' - ')[0].lower()
-            sport = normalize_sport_name(sport)
-        
-        if sport in SUPPORTED_SPORTS:
-            if is_single_event:
-                # حالت تک‌نفره/ایونت: فقط ساعت، لیگ، و کانال‌ها
-                event = {
-                    'time': tehran_time,
-                    'league': league,
-                    'event_name': teams_part if teams_part.strip() else "Event",
-                    'channels': channels,
-                    'sport': sport,
-                    'is_single_event': True
-                }
-            else:
-                # حالت دو تیمی: شامل تیم‌ها
-                event = {
-                    'time': tehran_time,
-                    'league': league,
-                    'team_left': team_left,
-                    'team_right': team_right,
-                    'channels': channels,
-                    'sport': sport,
-                    'is_single_event': False
-                }
-            events.append(event)
-    
-    return events
+            return (
+                f'<div class="card" data-sport="{category}">'
+                f'<h3>{event_text.upper()}</h3>'  # Convert event text to uppercase
+                f'<p class="event-name">{category.upper()}</p>'  # Convert category to uppercase
+                f'<p class="time">⏰ {local_time}</p>'  # Display local time
+                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+                f'</div>\n'
+            )
 
-def generate_main_content(events):
-    """ تولید محتوای <main> برای HTML """
-    main_content = '''
-    <main>
-        <div class="container">
-            <section id="events">
-                <h2>Today's Events</h2>
-                <div class="event-cards">
-    '''
-    
-    for event in events:
-        if event['is_single_event']:
-            # قالب‌بندی برای رویدادهای تک‌نفره/ایونت
-            main_content += f'''
-            <div class="card single-event" data-sport="{event['sport']}">
-                <h3>{event['league']}</h3>
-                <p class="event-name">{event.get('event_name', '')}</p>
-                <p class="time">⏰ {event['time']} GMT</p>
-                <p class="channels">Channels: {', '.join(event['channels'])}</p>
-            </div>
-            '''
-        else:
-            # قالب‌بندی برای رویدادهای دو تیمی
-            main_content += f'''
-            <div class="card" data-sport="{event['sport']}">
-                <h3>{event['league']}</h3>
-                <div class="teams">
-                    <span class="team-left">{event['team_left']}</span>
-                    <span class="vs">vs</span>
-                    <span class="team-right">{event['team_right']}</span>
-                </div>
-                <p class="time">⏰ {event['time']} GMT</p>
-                <p class="channels">Channels: {', '.join(event['channels'])}</p>
-            </div>
-            '''
-    
-    main_content += '''
-                </div>
-            </section>
-        </div>
-    </main>
-    '''
-    
-    return main_content
+    else:  # Other events (e.g., WWE NXT) or invalid events
+        return (
+            f'<div class="card" data-sport="{category}">'
+            f'<h3>{event_text.upper()}</h3>'  # Convert event text to uppercase
+            f'<p class="event-name">{category.upper()}</p>'  # Convert category to uppercase
+            f'<p class="time">⏰ {local_time}</p>'  # Display local time
+            f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+            f'</div>\n'
+        )
 
-def generate_complete_html(main_content):
-    """ تولید سند HTML کامل """
-    complete_html = f'''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sportify - Your Sports Events Hub</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <!-- Header Section -->
-    <header>
-        <div class="container">
-            <h1>Sportify</h1>
-            <!-- Hamburger Menu Icon for Mobile -->
-            <div class="menu-icon">
-                ☰
-            </div>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="#" data-sport="all">All</a></li>
-                    <li><a href="#" data-sport="soccer">Soccer</a></li>
-                    <li><a href="#" data-sport="volleyball">Volleyball</a></li>
-                    <li><a href="#" data-sport="basketball">Basketball</a></li>
-                    <li><a href="#" data-sport="handball">Handball</a></li>
-                    <li><a href="#" data-sport="tennis">Tennis</a></li>
-                    <li><a href="#" data-sport="hockey">Hockey</a></li>
-                    <li><a href="#" data-sport="cricket">Cricket</a></li>
-                    <li><a href="#" data-sport="boxing">Boxing</a></li>
-                    <li><a href="#" data-sport="wwe">WWE</a></li>
-                </ul>
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search events...">
-                </div>
-            </nav>
-        </div>
-    </header>
-    <!-- Main Content Section -->
-    {main_content}
-    <!-- Footer Section -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 Sportify. All rights reserved.</p>
-        </div>
-    </footer>
-    <script src="script.js"></script>
-</body>
-</html>
-'''
-    return complete_html
+# Main function to process data and write to index.html
+def main():
+    url = "https://daddylive.mp/schedule/schedule-generated.json"
+    json_data = fetch_data_from_url(url)
+    if not json_data:
+        print("Failed to fetch data. Exiting...")
+        return
 
-# اجرای کد
+    # Define fixed categories
+    fixed_categories = ['all', 'Soccer', 'Volleyball', 'Basketball', 'Handball', 'Tennis', 'Hockey', 'Cricket', 'Boxing', 'WWE']
+
+    # Extract all unique categories from the JSON data
+    all_categories = sorted(set([category for date, events in json_data.items() for category in events.keys()]))
+
+    # Separate fixed categories and more categories
+    primary_categories = fixed_categories.copy()  # Start with fixed categories
+    more_categories = []
+
+    for category in all_categories:
+        if category not in fixed_categories:
+            # Check if the category is a subcategory of any fixed category
+            matched = False
+            for fixed_category in fixed_categories[1:]:  # Skip 'all'
+                if fixed_category.lower() in category.lower():
+                    matched = True
+                    break
+            if not matched:
+                more_categories.append(category)
+
+    # Capitalize multi-part categories (e.g., "Water Sport" -> "Water Sport")
+    more_categories = [category.title() for category in more_categories]
+
+    # Ensure "TV Shows" is always the first item in More Events
+    more_categories.insert(0, "TV Shows") if "TV Shows" in more_categories else more_categories.append("TV Shows")
+
+    # Fix "Wwe" to "WWE" in primary categories
+    primary_categories = [category.upper() if category.lower() == "wwe" else category.capitalize() for category in primary_categories]
+
+    # Open the index.html file for writing
+    with open('index.html', 'w', encoding='utf-8') as output_file:
+        output_file.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n')
+        output_file.write('<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n')
+        output_file.write('<title>Sportify - Your Sports Events Hub</title>\n')
+        output_file.write('<link rel="stylesheet" href="styles.css">\n</head>\n<body>\n')
+
+        # Header Section
+        output_file.write('<header><div class="container"><h1>Sportify</h1>')
+        output_file.write('<div class="menu-icon">☰</div><nav><ul class="nav-links">')
+
+        # Write primary categories to the navigation menu
+        for category in primary_categories:
+            output_file.write(f'<li><a href="#" data-sport="{category.lower()}">{category}</a></li>\n')
+
+        # Add "More Events" dropdown if there are more categories
+        if more_categories:
+            output_file.write('<li class="dropdown"><a href="#" class="dropbtn">More Events</a>')
+            output_file.write('<div class="dropdown-content">\n')
+            for category in more_categories:
+                output_file.write(f'<a href="#" data-sport="{category.lower()}">{category}</a>\n')
+            output_file.write('</div></li>')
+
+        output_file.write('</ul><div class="search-box"><input type="text" id="searchInput" placeholder="Search events..."></div></nav></div></header>\n')
+
+        # Main Content Section
+        output_file.write('<main><div class="container"><section id="events"><h2>Today\'s Events</h2><div class="event-cards">\n')
+
+        # Traverse the JSON structure and assign events to appropriate categories
+        for date, events in json_data.items():
+            for category, event_list in events.items():
+                # Determine the final category for this event
+                final_category = category
+                for fixed_category in fixed_categories[1:]:  # Skip 'all'
+                    if fixed_category.lower() in category.lower():
+                        final_category = fixed_category
+                        break
+
+                for event in event_list:
+                    formatted_event = format_event(event, final_category.lower())
+                    if formatted_event:  # Ensure the event is not None
+                        output_file.write(formatted_event)
+
+        output_file.write('</div></section></div></main>\n')
+
+        # Footer Section
+        output_file.write('<footer><div class="container"><p>&copy; 2025 Sportify. All rights reserved.</p></div></footer>\n')
+        output_file.write('<script src="script.js"></script>\n</body>\n</html>')
+
+    print("index.html has been successfully created.")
+
 if __name__ == "__main__":
-    url = 'http://time4tv.top/schedule.php'  # URL سایت
-    events = extract_event_info(url)
-    main_content = generate_main_content(events)
-    complete_html = generate_complete_html(main_content)
-    
-    # ذخیره فایل index.html
-    with open('index.html', 'w', encoding='utf-8') as f:
-        f.write(complete_html)
-    
-    print("HTML file generated successfully!")
+    main()
