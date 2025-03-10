@@ -1,5 +1,31 @@
-/* General Reset */
-* {
+/* ====================================================
+   تنظیمات پایه و متغیرها
+   ==================================================== */
+:root {
+    /* رنگ‌ها */
+    --primary-bg: #1a1a1a;
+    --secondary-bg: #f4f4f9;
+    --accent-color: #00bcd4;
+    --text-primary: #333;
+    --text-light: #fff;
+    --text-secondary: #555;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-dark: rgba(0, 0, 0, 0.2);
+    
+    /* زمان انیمیشن‌ها */
+    --transition-fast: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    
+    /* شعاع‌های گرد کردن */
+    --radius-small: 5px;
+    --radius-medium: 10px;
+    --radius-large: 20px;
+}
+
+/* ====================================================
+   General Reset
+   ==================================================== */
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -8,23 +34,32 @@
 body {
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
-    background-color: #f4f4f9;
-    color: #333;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    font-size: 16px;
+    overflow-x: hidden;
 }
 
+/* کانتینر مرکزی */
 .container {
     width: 90%;
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 15px;
 }
 
-/* Header Styles */
+/* ====================================================
+   Header
+   ==================================================== */
 header {
-    background-color: #1a1a1a;
-    color: #fff;
+    background-color: var(--primary-bg);
+    background-image: linear-gradient(45deg, var(--primary-bg), #0f0f0f);
+    color: var(--text-light);
     padding: 1rem 0;
     text-align: center;
-    position: relative; /* For hamburger menu positioning */
+    position: relative; /* جهت قرارگیری آیکون منو */
+    box-shadow: 0 2px 4px var(--shadow-light);
+    z-index: 100;
 }
 
 header h1 {
@@ -32,158 +67,195 @@ header h1 {
     font-weight: bold;
     text-transform: uppercase;
     margin-bottom: 1rem;
+    letter-spacing: 1px;
 }
 
+/* آیکون منوی همبرگری */
 .menu-icon {
     display: none;
     font-size: 2rem;
     cursor: pointer;
-    color: #fff;
+    color: var(--text-light);
     position: absolute;
     top: 1rem;
     right: 1rem;
+    transition: transform var(--transition-fast);
 }
 
+.menu-icon:hover {
+    transform: scale(1.1);
+}
+
+/* نوار ناوبری */
 header nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+/* لینک‌های ناوبری */
 header nav ul.nav-links {
     list-style: none;
     display: flex;
-    gap: 1.5rem;
+    gap: 1rem;  /* فاصله کمتر */
     margin: 0;
+    align-items: center;
+    transition: all var(--transition-fast);
 }
 
 header nav ul.nav-links li a {
-    color: #fff;
+    color: var(--text-light);
     text-decoration: none;
     font-size: 1rem;
-    transition: color 0.3s ease, background-color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-small);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap; /* جلوگیری از شکستن کلمات */
 }
 
 header nav ul.nav-links li a:hover {
-    color: #00bcd4;
+    background-color: var(--accent-color);
+    color: var(--text-light);
 }
 
+/* ====================================================
+   Search Box (تکست باکس جستجو)
+   ==================================================== */
 .search-box {
     position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .search-box input {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 20px;
-    outline: none;
+    width: 100%;
+    height: 40px;
+    border: 2px solid var(--accent-color);
+    border-radius: var(--radius-small);  /* تغییر از دایره به گوشه‌های کوچک */
+    padding: 0 50px 0 15px;
+    background-color: #333;
+    color: var(--text-light);
     font-size: 1rem;
-    width: 80%; /* Take 80% of the row width */
-    max-width: 400px; /* Limit maximum width for larger screens */
-    transition: width 0.3s ease, background-color 0.3s ease;
-    background-color: #000; /* Black background */
-    color: #fff; /* White text */
-    text-align: center; /* Center align the placeholder and text */
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .search-box input::placeholder {
-    color: #ccc; /* Placeholder text color */
+    color: var(--text-light); /* رنگ سفید برای نوشته پیش فرض */
 }
 
 .search-box input:focus {
-    width: 90%; /* Expand slightly on focus */
-    background-color: #000; /* Keep black background on focus */
-    color: #fff; /* Keep white text on focus */
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px var(--accent-color);
 }
 
-/* Dropdown Menu Styles */
+/* اگر بخواهید آیکون جستجو را اضافه کنید (مثلاً: <span class="search-icon">🔎</span>) */
+.search-box .search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-color);
+    font-size: 1.2rem;
+    pointer-events: none;
+}
+
+/* ====================================================
+   Dropdown Menu
+   ==================================================== */
 .dropdown {
     position: relative;
     display: inline-block;
 }
 
 .dropdown .dropbtn {
-    color: #fff;
+    color: var(--text-light);
     text-decoration: none;
     font-size: 1rem;
-    transition: background-color 0.3s ease;
+    transition: background-color var(--transition-fast);
     padding: 0.5rem 1rem;
-    border-radius: 5px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
 }
 
 .dropdown:hover .dropbtn {
-    background-color: #00bcd4;
-    color: #fff;
+    background-color: var(--accent-color);
+    color: var(--text-light);
 }
 
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: #1a1a1a;
+    background-color: var(--primary-bg);
     min-width: 160px;
-    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 8px 16px var(--shadow-dark);
     z-index: 1;
-    top: 100%; /* Position below the dropdown button */
+    top: 100%;
     left: 0;
-    border-radius: 5px;
+    border-radius: var(--radius-small);
+    overflow: hidden;
+    animation: fadeIn 0.3s var(--transition-fast) forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-content a {
-    color: #fff;
+    color: var(--text-light);
     padding: 0.5rem 1rem;
     text-decoration: none;
     display: block;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .dropdown-content a:hover {
-    background-color: #000; /* Black background on hover */
-    color: #00bcd4; /* Blue text on hover */
+    background-color: #000;
+    color: var(--accent-color);
 }
 
 .dropdown:hover .dropdown-content {
     display: block;
 }
 
-/* Responsive Design */
-/* Tablet and Mobile Devices */
+/* ====================================================
+   Responsive Design (Tablet & Mobile)
+   ==================================================== */
 @media (max-width: 1024px) {
     header nav ul.nav-links {
-        display: none; /* Hide menu by default */
+        display: none; /* پیش‌فرض مخفی */
         flex-direction: column;
         gap: 1rem;
-        background-color: #1a1a1a;
+        background-color: var(--primary-bg);
         position: absolute;
         top: 60px;
         right: 0;
         width: 100%;
         padding: 1rem;
         z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity var(--transition-fast), visibility var(--transition-fast);
     }
 
     header nav ul.nav-links.active {
-        display: flex; /* Show menu when active */
+        display: flex;
+        opacity: 1;
+        visibility: visible;
     }
 
     .menu-icon {
-        display: block; /* Show hamburger menu icon */
+        display: block;
     }
 
     .search-box {
-        display: flex;
-        justify-content: center; /* Center the search box */
-        margin-left: 0;
-        margin-top: 1rem;
-    }
-
-    .search-box input {
-        width: 80%; /* Take 80% of the row width */
-        background-color: #000; /* Black background */
-        color: #fff; /* White text */
+        margin: 1rem 0 0 0;
     }
 }
 
-/* Mobile Devices */
 @media (max-width: 768px) {
     header h1 {
         font-size: 1.5rem;
@@ -192,57 +264,114 @@ header nav ul.nav-links li a:hover {
     header nav ul.nav-links li a {
         font-size: 0.9rem;
     }
-
+    
+    /* کاهش اندازه فونت‌های کارت‌ها برای موبایل */
+    .card h3 {
+        font-size: 1rem;
+    }
+    
+    .card .teams .team-left,
+    .card .teams .team-right {
+        font-size: 1rem;
+    }
+    
     .search-box input {
-        width: 70%; /* Reduce width for smaller screens */
+        font-size: 1.2rem;
+    }
+    
+    /* تنظیم عرض کارت‌ها برای موبایل */
+    .card {
+        width: 95%;
     }
 }
 
-/* Main Content Styles */
+/* ====================================================
+   Main Content & Event Cards
+   ==================================================== */
 main {
     padding: 2rem 0;
+}
+
+/* برای اطمینان از اینکه عنوان “Today's Events” دقیقا وسط باشد */
+#events h2 {
+    text-align: center;
 }
 
 h2 {
     font-size: 2rem;
     margin-bottom: 1.5rem;
-    color: #1a1a1a;
+    color: var(--primary-bg);
     text-align: center;
+    letter-spacing: 1px;
 }
 
+/* نمایش کارت‌ها به صورت تک در تک به صورت مرکزی */
 .event-cards {
-    display: grid;
-    grid-template-columns: 1fr; /* One card per row */
-    gap: 2rem; /* Increased gap between cards */
+    display: block;
+    text-align: center;
 }
 
 .card {
     background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-medium);
+    box-shadow: 0 4px 6px var(--shadow-light);
     padding: 1.5rem;
-    width: 80%; /* Card takes up 80% of the row */
-    margin: 0 auto; /* Center the card */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;  /* تغییر از 70% به 80% */
+    margin: 1rem auto;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+/* افکت تزئینی روی کارت */
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, var(--accent-color), transparent);
+    transform: skewX(-25deg);
+    transition: all 0.5s;
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px var(--shadow-dark);
 }
 
+.card:hover::before {
+    left: 200%;
+}
+
+/* جلوگیری از بیرون زدن متن‌های داخل کارت */
+.card h3,
+.card .teams .team-left,
+.card .teams .team-right,
+.card .event-name,
+.card .time,
+.card .channels {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* عنوان کارت */
 .card h3 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #333; /* Dark text color */
-    text-align: center; /* Center the title */
+    color: var(--text-primary);
+    text-align: center;
 }
 
+/* بخش تیم‌ها */
 .card .teams {
     display: flex;
-    justify-content: space-between; /* Distribute items evenly */
-    align-items: center; /* Align items vertically */
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1rem;
+    padding: 0 1rem;
 }
 
 .card .teams .team-left,
@@ -250,47 +379,222 @@ h2 {
     font-size: 1.2rem;
     font-weight: bold;
     text-transform: uppercase;
-    flex: 1; /* Take equal space on both sides */
-    text-align: center; /* Center align the team names */
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
 }
 
 .card .teams .vs {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #00bcd4; /* Highlight "vs" with a different color */
-    flex: 0 0 auto; /* Keep "vs" fixed in the center */
+    color: var(--accent-color);
+    flex: 0 0 auto;
+    padding: 0 0.5rem;
 }
 
+/* نام رویداد */
 .card .event-name {
     font-size: 1.2rem;
-    font-weight: bold; /* Make it bold */
-    text-align: center; /* Center the text */
-    margin-bottom: 1rem; /* Add spacing below */
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1rem;
 }
 
+/* زمان برگزاری */
 .card .time {
     font-size: 1rem;
-    color: #000; /* Black text color for time */
+    color: #000;
     text-align: center;
     margin-bottom: 0.5rem;
+    padding: 0.5rem;
 }
 
+/* نمایش کانال‌ها */
 .card .channels {
     font-size: 0.9rem;
-    color: #555;
+    color: var(--text-secondary);
     direction: ltr;
     text-align: center;
+    padding: 0.5rem;
 }
 
-/* Footer Styles */
+/* توضیحات یا اطلاعات اضافی */
+.card .extra-info {
+    margin-top: 1rem;
+    background-color: #eee;
+    padding: 1rem;
+    border-radius: var(--radius-small);
+    transition: background-color var(--transition-fast);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.card .extra-info:hover {
+    background-color: var(--accent-color);
+    color: var(--text-light);
+}
+
+/* ====================================================
+   دکمه‌های عمومی
+   ==================================================== */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-color);
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: var(--radius-small);
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    font-size: 1rem;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    margin: 1rem auto;
+}
+
+.btn:hover {
+    background-color: #0097a7;
+    transform: translateY(-3px);
+}
+
+/* ====================================================
+   Footer
+   ==================================================== */
 footer {
-    background-color: #1a1a1a;
-    color: #fff;
+    background-color: var(--primary-bg);
+    color: var(--text-light);
     text-align: center;
     padding: 1rem 0;
     margin-top: 2rem;
+    border-top: 1px solid #444;
 }
 
 footer p {
     font-size: 0.9rem;
 }
+
+/* ====================================================
+   Decorative & Utility Elements
+   ==================================================== */
+.decorative-divider {
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-color), var(--primary-bg), var(--accent-color));
+    margin: 2rem 0;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(50px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+.animate-on-scroll {
+    animation: slideIn var(--transition-slow) forwards;
+}
+
+/* اعلان‌ها */
+.announcement {
+    background-color: var(--accent-color);
+    color: var(--text-light);
+    padding: 1rem;
+    margin: 2rem auto;
+    text-align: center;
+    border-radius: var(--radius-large);
+    max-width: 800px;
+    box-shadow: 0 4px 8px var(--shadow-dark);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.announcement:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px var(--shadow-dark);
+}
+
+/* مدال */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+    z-index: 10000;
+}
+
+.modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background-color: var(--secondary-bg);
+    padding: 2rem;
+    border-radius: var(--radius-medium);
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    animation: slideIn 0.4s var(--transition-fast) forwards;
+}
+
+.modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+/* ====================================================
+   Utility Classes
+   ==================================================== */
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.text-center { text-align: center; }
+.text-uppercase { text-transform: uppercase; }
+.font-bold { font-weight: bold; }
+.opacity-50 { opacity: 0.5; }
+.p-1 { padding: 1rem; }
+.p-2 { padding: 2rem; }
+
+/* ====================================================
+   تنظیمات ویژه برای صفحه نمایش‌های بزرگ (تلویزیون و دسکتاپ)
+   ==================================================== */
+@media (min-width: 1200px) {
+    body {
+        font-size: 18px;
+    }
+    
+    header h1 {
+        font-size: 2.5rem;
+    }
+    
+    .menu-icon {
+        font-size: 2.5rem;
+    }
+    
+    h2 {
+        font-size: 2.5rem;
+    }
+    
+    .card h3 {
+        font-size: 1.8rem;
+    }
+    
+    .search-box input {
+        max-width: 500px;
+    }
+}
+
+/* ====================================================
+   پایان فایل CSS
+   ==================================================== */
