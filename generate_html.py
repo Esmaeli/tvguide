@@ -3,6 +3,7 @@ import re
 import requests
 import pytz
 from datetime import datetime, timedelta
+from tzlocal import get_localzone  # Import get_localzone from tzlocal
 
 # Function to fetch data from the internet
 def fetch_data_from_url(url):
@@ -27,8 +28,8 @@ def convert_to_local_time(uk_time_str):
         # Assume UK is UTC+0
         utc_time = pytz.utc.localize(datetime.combine(datetime.today(), uk_time.time()))
 
-        # Get the local timezone
-        local_tz = pytz.timezone('Asia/Tehran')  # Change 'Asia/Tehran' to your desired timezone
+        # Get the local timezone of the user's system
+        local_tz = get_localzone()  # Use tzlocal to get the system's local timezone
         local_time = utc_time.astimezone(local_tz)
 
         # Return only the time in HH:MM format
@@ -37,23 +38,39 @@ def convert_to_local_time(uk_time_str):
         print(f"Error converting time: {e}")
         return uk_time_str  # Return original time if conversion fails
 
-# Function to extract channels from event data
+# Function to extract channels from event data and create hyperlinks
 def extract_channels(event):
     channels_list = []
 
     # Process 'channels' field
     if isinstance(event.get('channels'), dict):  # If 'channels' is a dictionary
-        channels_list += [channel['channel_name'] for channel in event['channels'].values() if isinstance(channel, dict) and 'channel_name' in channel]
+        for channel in event['channels'].values():
+            if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
+                channel_name = channel['channel_name']
+                channel_id = channel['channel_id']
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels'), list):  # If 'channels' is a list
-        channels_list += [channel['channel_name'] for channel in event['channels'] if isinstance(channel, dict) and 'channel_name' in channel]
+        for channel in event['channels']:
+            if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
+                channel_name = channel['channel_name']
+                channel_id = channel['channel_id']
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels'), str):  # If 'channels' is a string
         channels_list.append(event['channels'])
 
     # Process 'channels2' field
     if isinstance(event.get('channels2'), dict):  # If 'channels2' is a dictionary
-        channels_list += [channel['channel_name'] for channel in event['channels2'].values() if isinstance(channel, dict) and 'channel_name' in channel]
+        for channel in event['channels2'].values():
+            if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
+                channel_name = channel['channel_name']
+                channel_id = channel['channel_id']
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels2'), list):  # If 'channels2' is a list
-        channels_list += [channel['channel_name'] for channel in event['channels2'] if isinstance(channel, dict) and 'channel_name' in channel]
+        for channel in event['channels2']:
+            if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
+                channel_name = channel['channel_name']
+                channel_id = channel['channel_id']
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels2'), str):  # If 'channels2' is a string
         channels_list.append(event['channels2'])
 
@@ -107,27 +124,6 @@ def format_event(event, category):
             f'</div>\n'
         )
 
-    elif 'Season' in event_text or 'Episode' in event_text:  # TV Shows/Movies
-        if 'Season' in event_text and 'Episode' in event_text:
-            title, episode = event_text.split(', Episode')
-            return (
-                f'<div class="card" data-sport="{category}">'
-                f'<h3>{title.strip()}</h3>'
-                f'<p class="event-name">Episode {episode.strip().upper()}</p>'  # Convert episode name to uppercase
-                f'<p class="time">⏰ {local_time}</p>'  # Display local time
-                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
-                f'</div>\n'
-            )
-        else:
-            return (
-                f'<div class="card" data-sport="{category}">'
-                f'<h3>{event_text.upper()}</h3>'  # Convert event text to uppercase
-                f'<p class="event-name">{category.upper()}</p>'  # Convert category to uppercase
-                f'<p class="time">⏰ {local_time}</p>'  # Display local time
-                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
-                f'</div>\n'
-            )
-
     else:  # Other events (e.g., WWE NXT) or invalid events
         return (
             f'<div class="card" data-sport="{category}">'
@@ -137,6 +133,28 @@ def format_event(event, category):
             f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
             f'</div>\n'
         )
+
+# Function to prioritize Soccer events based on keywords
+def prioritize_soccer_events(events):
+    # List of keywords for prioritization
+    keywords = [
+        "England", "Spain", "Italy", "France", "Germany", 
+        "Bundesliga", "Saudi Arabia", "Saudi", "Arabia", "Turkey"
+    ]
+
+    # Separate events into prioritized and non-prioritized
+    prioritized_events = []
+    non_prioritized_events = []
+
+    for event in events:
+        event_text = event.get('event', '').lower()
+        if any(keyword.lower() in event_text for keyword in keywords):
+            prioritized_events.append(event)
+        else:
+            non_prioritized_events.append(event)
+
+    # Combine the lists with prioritized events first
+    return prioritized_events + non_prioritized_events
 
 # Main function to process data and write to index.html
 def main():
@@ -170,18 +188,56 @@ def main():
     # Capitalize multi-part categories (e.g., "Water Sport" -> "Water Sport")
     more_categories = [category.title() for category in more_categories]
 
-    # Ensure "TV Shows" is always the first item in More Events
-    more_categories.insert(0, "TV Shows") if "TV Shows" in more_categories else more_categories.append("TV Shows")
-
     # Fix "Wwe" to "WWE" in primary categories
     primary_categories = [category.upper() if category.lower() == "wwe" else category.capitalize() for category in primary_categories]
 
     # Open the index.html file for writing
     with open('index.html', 'w', encoding='utf-8') as output_file:
+        # Write HTML document
         output_file.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n')
         output_file.write('<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n')
         output_file.write('<title>Sportify - Your Sports Events Hub</title>\n')
-        output_file.write('<link rel="stylesheet" href="styles.css">\n</head>\n<body>\n')
+        output_file.write('<link rel="stylesheet" href="styles.css">\n')
+
+        # Add inline styles
+        output_file.write('<style>\n')
+        output_file.write('.kojal {\n')
+        output_file.write('    display: none; /* Hidden by default */\n')
+        output_file.write('    position: fixed; /* Stay in place */\n')
+        output_file.write('    z-index: 1; /* Sit on top */\n')
+        output_file.write('    left: 0;\n')
+        output_file.write('    top: 0;\n')
+        output_file.write('    width: 100%; /* Full width */\n')
+        output_file.write('    height: 100%; /* Full height */\n')
+        output_file.write('    overflow: auto; /* Enable scroll if needed */\n')
+        output_file.write('    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('.kojal-content {\n')
+        output_file.write('    background-color: #fefefe;\n')
+        output_file.write('    margin: 15% auto; /* 15% from the top and centered */\n')
+        output_file.write('    padding: 20px;\n')
+        output_file.write('    border: 1px solid #888;\n')
+        output_file.write('    width: 80%; /* Could be more or less, depending on screen size */\n')
+        output_file.write('    text-align: center;\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('.close {\n')
+        output_file.write('    color: #aaa;\n')
+        output_file.write('    float: right;\n')
+        output_file.write('    font-size: 28px;\n')
+        output_file.write('    font-weight: bold;\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('.close:hover,\n')
+        output_file.write('.close:focus {\n')
+        output_file.write('    color: black;\n')
+        output_file.write('    text-decoration: none;\n')
+        output_file.write('    cursor: pointer;\n')
+        output_file.write('}\n')
+        output_file.write('</style>\n')
+
+        output_file.write('</head>\n<body>\n')
 
         # Header Section
         output_file.write('<header><div class="container"><h1>Sportify</h1>')
@@ -207,12 +263,20 @@ def main():
         # Traverse the JSON structure and assign events to appropriate categories
         for date, events in json_data.items():
             for category, event_list in events.items():
+                # Skip TV Shows category entirely
+                if "TV Shows" in category:
+                    continue
+
                 # Determine the final category for this event
                 final_category = category
                 for fixed_category in fixed_categories[1:]:  # Skip 'all'
                     if fixed_category.lower() in category.lower():
                         final_category = fixed_category
                         break
+
+                # Prioritize Soccer events
+                if final_category.lower() == "soccer":
+                    event_list = prioritize_soccer_events(event_list)
 
                 for event in event_list:
                     formatted_event = format_event(event, final_category.lower())
@@ -221,9 +285,80 @@ def main():
 
         output_file.write('</div></section></div></main>\n')
 
+        # The Kojal
+        output_file.write('<div id="streamKojal" class="kojal">\n')
+        output_file.write('  <div class="kojal-content">\n')
+        output_file.write('    <span class="close">&times;</span>\n')
+        output_file.write('    <h2 id="kojalTitle"></h2>\n')
+        output_file.write('    <p style="direction: rtl; unicode-bidi: embed;">ما هیچ مسئولیتی در قبال نمایش‌ها و تبلیغات نداریم.</p>\n')
+        output_file.write('    <p>We are not responsible for the content or advertisements displayed.</p>\n')
+        output_file.write('    <p style="direction: rtl; unicode-bidi: embed;">برای فعال‌سازی صدا، لطفاً روی unmute کلیک کنید. توجه داشته باشید که ممکن است یک تبلیغ پاپ‌آپ مشاهده کنید.</p>\n')
+        output_file.write('    <p>To enable sound, please click on unmute. Please be aware that a pop-up advertisement may appear.</p>\n')
+        output_file.write('    <button id="watchNowButton" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px;">Watch Now / تماشا کنید</button>\n')
+        output_file.write('  </div>\n')
+        output_file.write('</div>\n')
+
         # Footer Section
         output_file.write('<footer><div class="container"><p>&copy; 2025 Sportify. All rights reserved.</p></div></footer>\n')
-        output_file.write('<script src="script.js"></script>\n</body>\n</html>')
+
+        # Add JavaScript
+        output_file.write('<script>\n')
+        output_file.write('// Get the kojal\n')
+        output_file.write('var kojal = document.getElementById("streamKojal");\n')
+        output_file.write('\n')
+        output_file.write('// Get the button that opens the kojal\n')
+        output_file.write('//var btn = document.getElementById("myBtn");\n')
+        output_file.write('\n')
+        output_file.write('// Get the <span> element that closes the kojal\n')
+        output_file.write('var span = document.getElementsByClassName("close")[0];\n')
+        output_file.write('\n')
+        output_file.write('// When the user clicks on <span> (x), close the kojal\n')
+        output_file.write('span.onclick = function() {\n')
+        output_file.write('  kojal.style.display = "none";\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('// When the user clicks anywhere outside of the kojal, close it\n')
+        output_file.write('window.onclick = function(event) {\n')
+        output_file.write('  if (event.target == kojal) {\n')
+        output_file.write('    kojal.style.display = "none";\n')
+        output_file.write('  }\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('function openStream(channelId, channelName) {\n')
+        output_file.write('    var streamUrl = "https://daddylive.mp/embed/stream-" + channelId + ".php";\n')
+        output_file.write('    document.getElementById("kojalTitle").innerText = "You are being redirected to watch " + channelName;\n')
+        output_file.write('    document.getElementById("watchNowButton").onclick = function() {\n')
+        output_file.write('        window.open(streamUrl, "_blank");\n')
+        output_file.write('    };\n')
+        output_file.write('    kojal.style.display = "block";\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('// Navigation links functionality\n')
+        output_file.write('document.querySelectorAll(\'.nav-links a\').forEach(link => {\n')
+        output_file.write('    link.addEventListener(\'click\', function(e) {\n')
+        output_file.write('        e.preventDefault();\n')
+        output_file.write('        const sport = this.dataset.sport;\n')
+        output_file.write('        filterEvents(sport);\n')
+        output_file.write('    });\n')
+        output_file.write('});\n')
+        output_file.write('\n')
+        output_file.write('function filterEvents(sport) {\n')
+        output_file.write('    const eventCards = document.querySelectorAll(\'.event-cards .card\');\n')
+        output_file.write('    eventCards.forEach(card => {\n')
+        output_file.write('        if (sport === \'all\' || card.dataset.sport === sport) {\n')
+        output_file.write('            card.style.display = \'\';\n')
+        output_file.write('        } else {\n')
+        output_file.write('            card.style.display = \'none\';\n')
+        output_file.write('        }\n')
+        output_file.write('    });\n')
+        output_file.write('}\n')
+        output_file.write('\n')
+        output_file.write('// Hamburger menu functionality (assuming you have this in styles.css or a separate script)\n')
+        output_file.write('document.querySelector(\'.menu-icon\').addEventListener(\'click\', function() {\n')
+        output_file.write('    document.querySelector(\'.nav-links\').classList.toggle(\'active\');\n')
+        output_file.write('});\n')
+        output_file.write('</script>\n')
+        output_file.write('</body>\n</html>')
 
     print("index.html has been successfully created.")
 
