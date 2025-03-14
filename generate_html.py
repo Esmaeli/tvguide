@@ -48,13 +48,13 @@ def extract_channels(event):
             if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
                 channel_name = channel['channel_name']
                 channel_id = channel['channel_id']
-                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels'), list):  # If 'channels' is a list
         for channel in event['channels']:
             if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
                 channel_name = channel['channel_name']
                 channel_id = channel['channel_id']
-                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels'), str):  # If 'channels' is a string
         channels_list.append(event['channels'])
 
@@ -64,13 +64,13 @@ def extract_channels(event):
             if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
                 channel_name = channel['channel_name']
                 channel_id = channel['channel_id']
-                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels2'), list):  # If 'channels2' is a list
         for channel in event['channels2']:
             if isinstance(channel, dict) and 'channel_name' in channel and 'channel_id' in channel:
                 channel_name = channel['channel_name']
                 channel_id = channel['channel_id']
-                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\', \'{channel_name}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
+                channels_list.append(f'<a href="#" onclick="openStream(\'{channel_id}\')" style="color: blue; text-decoration: none;">{channel_name}</a>')
     elif isinstance(event.get('channels2'), str):  # If 'channels2' is a string
         channels_list.append(event['channels2'])
 
@@ -201,38 +201,30 @@ def main():
 
         # Add inline styles
         output_file.write('<style>\n')
-        output_file.write('.kojal {\n')
-        output_file.write('    display: none; /* Hidden by default */\n')
-        output_file.write('    position: fixed; /* Stay in place */\n')
-        output_file.write('    z-index: 1; /* Sit on top */\n')
-        output_file.write('    left: 0;\n')
+        output_file.write('.stream-window {\n')
+        output_file.write('    display: none;\n')
+        output_file.write('    position: fixed;\n')
         output_file.write('    top: 0;\n')
-        output_file.write('    width: 100%; /* Full width */\n')
-        output_file.write('    height: 100%; /* Full height */\n')
-        output_file.write('    overflow: auto; /* Enable scroll if needed */\n')
-        output_file.write('    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */\n')
+        output_file.write('    left: 0;\n')
+        output_file.write('    width: 100%;\n')
+        output_file.write('    height: 100%;\n')
+        output_file.write('    background-color: rgba(0, 0, 0, 0.8);\n')
+        output_file.write('    z-index: 1000;\n')
         output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('.kojal-content {\n')
-        output_file.write('    background-color: #fefefe;\n')
-        output_file.write('    margin: 15% auto; /* 15% from the top and centered */\n')
-        output_file.write('    padding: 20px;\n')
-        output_file.write('    border: 1px solid #888;\n')
-        output_file.write('    width: 80%; /* Could be more or less, depending on screen size */\n')
-        output_file.write('    text-align: center;\n')
+        output_file.write('.stream-content {\n')
+        output_file.write('    position: absolute;\n')
+        output_file.write('    top: 50%;\n')
+        output_file.write('    left: 50%;\n')
+        output_file.write('    transform: translate(-50%, -50%);\n')
+        output_file.write('    width: 80%;\n')
+        output_file.write('    height: 80%;\n')
         output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('.close {\n')
-        output_file.write('    color: #aaa;\n')
-        output_file.write('    float: right;\n')
-        output_file.write('    font-size: 28px;\n')
-        output_file.write('    font-weight: bold;\n')
-        output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('.close:hover,\n')
-        output_file.write('.close:focus {\n')
-        output_file.write('    color: black;\n')
-        output_file.write('    text-decoration: none;\n')
+        output_file.write('.close-button {\n')
+        output_file.write('    position: absolute;\n')
+        output_file.write('    top: 10px;\n')
+        output_file.write('    right: 10px;\n')
+        output_file.write('    color: white;\n')
+        output_file.write('    font-size: 20px;\n')
         output_file.write('    cursor: pointer;\n')
         output_file.write('}\n')
         output_file.write('</style>\n')
@@ -285,17 +277,12 @@ def main():
 
         output_file.write('</div></section></div></main>\n')
 
-        # The Kojal
-        output_file.write('<div id="streamKojal" class="kojal">\n')
-        output_file.write('  <div class="kojal-content">\n')
-        output_file.write('    <span class="close">&times;</span>\n')
-        output_file.write('    <h2 id="kojalTitle"></h2>\n')
-        output_file.write('    <p style="direction: rtl; unicode-bidi: embed;">ما هیچ مسئولیتی در قبال نمایش‌ها و تبلیغات نداریم.</p>\n')
-        output_file.write('    <p>We are not responsible for the content or advertisements displayed.</p>\n')
-        output_file.write('    <p style="direction: rtl; unicode-bidi: embed;">برای فعال‌سازی صدا، لطفاً روی unmute کلیک کنید. توجه داشته باشید که ممکن است یک تبلیغ پاپ‌آپ مشاهده کنید.</p>\n')
-        output_file.write('    <p>To enable sound, please click on unmute. Please be aware that a pop-up advertisement may appear.</p>\n')
-        output_file.write('    <button id="watchNowButton" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px;">Watch Now / تماشا کنید</button>\n')
-        output_file.write('  </div>\n')
+        # Stream Window
+        output_file.write('<div id="streamWindow" class="stream-window">\n')
+        output_file.write('    <div class="stream-content">\n')
+        output_file.write('        <span class="close-button" onclick="closeStream()">×</span>\n')
+        output_file.write('        <iframe id="streamFrame" class="video responsive" marginheight="0" marginwidth="0" src="" name="iframe_a" scrolling="no" allowfullscreen="yes" width="100%" height="100%" frameborder="0">Your Browser Do not Support Iframe</iframe>\n')
+        output_file.write('    </div>\n')
         output_file.write('</div>\n')
 
         # Footer Section
@@ -303,62 +290,18 @@ def main():
 
         # Add JavaScript
         output_file.write('<script>\n')
-        output_file.write('// Get the kojal\n')
-        output_file.write('var kojal = document.getElementById("streamKojal");\n')
-        output_file.write('\n')
-        output_file.write('// Get the button that opens the kojal\n')
-        output_file.write('//var btn = document.getElementById("myBtn");\n')
-        output_file.write('\n')
-        output_file.write('// Get the <span> element that closes the kojal\n')
-        output_file.write('var span = document.getElementsByClassName("close")[0];\n')
-        output_file.write('\n')
-        output_file.write('// When the user clicks on <span> (x), close the kojal\n')
-        output_file.write('span.onclick = function() {\n')
-        output_file.write('  kojal.style.display = "none";\n')
-        output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('// When the user clicks anywhere outside of the kojal, close it\n')
-        output_file.write('window.onclick = function(event) {\n')
-        output_file.write('  if (event.target == kojal) {\n')
-        output_file.write('    kojal.style.display = "none";\n')
-        output_file.write('  }\n')
-        output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('function openStream(channelId, channelName) {\n')
+        output_file.write('function openStream(channelId) {\n')
         output_file.write('    var streamUrl = "https://daddylive.mp/embed/stream-" + channelId + ".php";\n')
-        output_file.write('    document.getElementById("kojalTitle").innerText = "You are being redirected to watch " + channelName;\n')
-        output_file.write('    document.getElementById("watchNowButton").onclick = function() {\n')
-        output_file.write('        window.open(streamUrl, "_blank");\n')
-        output_file.write('    };\n')
-        output_file.write('    kojal.style.display = "block";\n')
+        output_file.write('    document.getElementById("streamFrame").src = streamUrl;\n')
+        output_file.write('    document.getElementById("streamWindow").style.display = "block";\n')
         output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('// Navigation links functionality\n')
-        output_file.write('document.querySelectorAll(\'.nav-links a\').forEach(link => {\n')
-        output_file.write('    link.addEventListener(\'click\', function(e) {\n')
-        output_file.write('        e.preventDefault();\n')
-        output_file.write('        const sport = this.dataset.sport;\n')
-        output_file.write('        filterEvents(sport);\n')
-        output_file.write('    });\n')
-        output_file.write('});\n')
-        output_file.write('\n')
-        output_file.write('function filterEvents(sport) {\n')
-        output_file.write('    const eventCards = document.querySelectorAll(\'.event-cards .card\');\n')
-        output_file.write('    eventCards.forEach(card => {\n')
-        output_file.write('        if (sport === \'all\' || card.dataset.sport === sport) {\n')
-        output_file.write('            card.style.display = \'\';\n')
-        output_file.write('        } else {\n')
-        output_file.write('            card.style.display = \'none\';\n')
-        output_file.write('        }\n')
-        output_file.write('    });\n')
+        output_file.write('function closeStream() {\n')
+        output_file.write('    document.getElementById("streamWindow").style.display = "none";\n')
+        output_file.write('    document.getElementById("streamFrame").src = ""; // Clear the iframe source\n')
         output_file.write('}\n')
-        output_file.write('\n')
-        output_file.write('// Hamburger menu functionality (assuming you have this in styles.css or a separate script)\n')
-        output_file.write('document.querySelector(\'.menu-icon\').addEventListener(\'click\', function() {\n')
-        output_file.write('    document.querySelector(\'.nav-links\').classList.toggle(\'active\');\n')
-        output_file.write('});\n')
         output_file.write('</script>\n')
-        output_file.write('</body>\n</html>')
+
+        output_file.write('<script src="script.js"></script>\n</body>\n</html>')
 
     print("index.html has been successfully created.")
 
