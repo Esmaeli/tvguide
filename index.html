@@ -5,34 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sportify - Your Sports Events Hub</title>
 <link rel="stylesheet" href="styles.css">
-<style>
-.stream-window {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-}
-.stream-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80%;
-    height: 80%;
-}
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-}
-</style>
 </head>
 <body>
 <header><div class="container"><h1>Sportify</h1><div class="menu-icon">☰</div><nav><ul class="nav-links"><li><a href="#" data-sport="all">All</a></li>
@@ -63,6 +35,7 @@
 <a href="#" data-sport="lacrosse</span>">Lacrosse</Span></a>
 <a href="#" data-sport="mma</span>">Mma</Span></a>
 <a href="#" data-sport="motorsport</span>">Motorsport</Span></a>
+<a href="#" data-sport="ppv events</span>">Ppv Events</Span></a>
 <a href="#" data-sport="rugby league</span>">Rugby League</Span></a>
 <a href="#" data-sport="rugby union</span>">Rugby Union</Span></a>
 <a href="#" data-sport="sailing / boating</span>">Sailing / Boating</Span></a>
@@ -73,6 +46,18 @@
 <a href="#" data-sport="winter sports</span>">Winter Sports</Span></a>
 </div></li></ul><div class="search-box"><input type="text" id="searchInput" placeholder="Search events..."></div></nav></div></header>
 <main><div class="container"><section id="events"><h2>Today's Events</h2><div class="event-cards">
+<div class="card" data-sport="ppv events</span>"><h3>2025 TX2K25</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 15:00</p><p class="channels">Channels: Floracing</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>2025 SHORT TRACK SUPER SERIES SPEED SHOWCASE AT PORT ROYAL SPEEDWAY</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 18:00</p><p class="channels">Channels: Floracing</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>2025 HAYES BRAKES SNOCROSS NATIONAL</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 19:00</p><p class="channels">Channels: Floracing</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>WORLD OF OUTLAWS LATE MODELS</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 21:30</p><p class="channels">Channels: Event PPV</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>2025 410 SPRINTS AT LINCOLN SPEEDWAY</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 21:30</p><p class="channels">Channels: Floracing</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>WORLD OF OUTLAWS SPRINT CARS</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 22:30</p><p class="channels">Channels: Event PPV</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>WV TOUGHMAN CONTEST</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 23:00</p><p class="channels">Channels: Event PPV</p></div>
+<div class="card single-event" data-sport="ppv events</span>"><h3>House of Glory</h3><p class="event-name">CITY OF DREAMZ 2025</p><p class="time">⏰ 00:00</p><p class="channels">Channels: Triller TV</p></div>
+<div class="card single-event" data-sport="ppv events</span>"><h3>GCW</h3><p class="event-name">ASHES TO ASHES 2025</p><p class="time">⏰ 00:00</p><p class="channels">Channels: Triller TV</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>SLAPFIGHT DOUBLE BARREL PPV</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 00:00</p><p class="channels">Channels: Event PPV</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>2025 USAC CRA SPRINTS AT IMPERIAL VALLEY RACEWAY</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 00:30</p><p class="channels">Channels: Floracing</p></div>
+<div class="card" data-sport="ppv events</span>"><h3>2025 KUBOTA HIGH LIMIT RACING AT LAS VEGAS MOTOR SPEEDWAY</h3><p class="event-name">PPV EVENTS</SPAN></p><p class="time">⏰ 00:45</p><p class="channels">Channels: Floracing</p></div>
 <div class="card" data-sport="tv shows</span>"><h3>BIG CITY GREENS SEASON 4, EPISODE 13</h3><p class="event-name">TV SHOWS</SPAN></p><p class="time">⏰ 12:00</p><p class="channels">Channels: Disney Channel, Disney XD</p></div>
 <div class="card" data-sport="tv shows</span>"><h3>HOT 20 COUNTDOWN EPISODE 23</h3><p class="event-name">TV SHOWS</SPAN></p><p class="time">⏰ 13:00</p><p class="channels">Channels: CMT USA</p></div>
 <div class="card" data-sport="tv shows</span>"><h3>LIFE IN BETWEEN GATES WPST - ASPEN, CO - PART 2</h3><p class="event-name">TV SHOWS</SPAN></p><p class="time">⏰ 15:00</p><p class="channels">Channels: MASN USA</p></div>
@@ -586,23 +571,16 @@
 </div></section></div></main>
 <footer><div class="container"><p>&copy; 2025 Sportify. All rights reserved.</p></div></footer>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const navLinks = document.querySelectorAll(".nav-links a");
-    const eventCards = document.querySelectorAll(".event-cards .card");
-
-    navLinks.forEach(link => {
-        link.addEventListener("click", function(event) {
-            event.preventDefault();
-            const sport = this.dataset.sport;
-
-            eventCards.forEach(card => {
-                if (sport === "all" || card.dataset.sport === sport) {
-                    card.style.display = "block";
-                } else {
-                    card.style.display = "none";
-                }
-            });
-        });
+document.getElementById("searchInput").addEventListener("input", function() {
+    const searchTerm = this.value.toLowerCase();
+    const cards = document.querySelectorAll(".card");
+    cards.forEach(card => {
+        const eventText = card.textContent.toLowerCase();
+        if (eventText.includes(searchTerm)) {
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
     });
 });
 </script>
