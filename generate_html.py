@@ -16,7 +16,7 @@ def fetch_data_from_url(url):
         return None
 
 # Function to convert UK time to local user time
-def convert_to_local_time(uk_time_str, local_tz):
+def convert_to_local_time(uk_time_str):
     try:
         if not uk_time_str or uk_time_str == 'N/A':  # Check for empty or invalid time
             return 'N/A'
@@ -28,7 +28,8 @@ def convert_to_local_time(uk_time_str, local_tz):
         # Assume UK is UTC+0
         utc_time = pytz.utc.localize(datetime.combine(datetime.today(), uk_time.time()))
 
-        # Convert to local timezone
+        # Get the local timezone of the system
+        local_tz = pytz.timezone('local')  # Automatically detect the system's local timezone
         local_time = utc_time.astimezone(local_tz)
 
         # Return only the time in HH:MM format
@@ -60,7 +61,7 @@ def extract_channels(event):
     return channels_list
 
 # Function to detect the type of event and format it for HTML
-def format_event(event, category, local_tz):
+def format_event(event, category):
     event_text = event.get('event', '')  # Use .get() to avoid KeyError
     time = event.get('time', 'N/A')  # Provide a default value if 'time' is missing
 
@@ -68,7 +69,7 @@ def format_event(event, category, local_tz):
     channels = extract_channels(event)
 
     # Convert UK time to local time
-    local_time = convert_to_local_time(time, local_tz)
+    local_time = convert_to_local_time(time)
 
     # Detect the type of event (using Regular Expression)
     if ':' in event_text and re.search(r'\b(vs|\.vs|x)\b', event_text, re.IGNORECASE):  # Sporting event with two teams
@@ -176,9 +177,6 @@ def main():
     # Fix "Wwe" to "WWE" in primary categories
     primary_categories = [category.upper() if category.lower() == "wwe" else category.capitalize() for category in primary_categories]
 
-    # Get the local timezone from the user
-    local_tz = pytz.timezone(input("Enter your timezone (e.g., 'Asia/Tehran'): "))
-
     # Open the index.html file for writing
     with open('index.html', 'w', encoding='utf-8') as output_file:
         output_file.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n')
@@ -220,7 +218,7 @@ def main():
                         break
 
                 for event in event_list:
-                    formatted_event = format_event(event, final_category.lower(), local_tz)
+                    formatted_event = format_event(event, final_category.lower())
                     if formatted_event:  # Ensure the event is not None
                         output_file.write(formatted_event)
 
