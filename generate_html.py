@@ -2,8 +2,8 @@ import json
 import re
 import requests
 import pytz
-from datetime import datetime
-from tzlocal import get_localzone  # Import get_localzone from tzlocal
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 
 # Function to fetch data from the internet
 def fetch_data_from_url(url):
@@ -28,8 +28,8 @@ def convert_to_local_time(uk_time_str):
         # Assume UK is UTC+0
         utc_time = pytz.utc.localize(datetime.combine(datetime.today(), uk_time.time()))
 
-        # Get the local timezone of the user's system
-        local_tz = get_localzone()  # Use tzlocal to get the system's local timezone
+        # Get the local timezone
+        local_tz = pytz.timezone('Asia/Tehran')  # Change 'Asia/Tehran' to your desired timezone
         local_time = utc_time.astimezone(local_tz)
 
         # Return only the time in HH:MM format
@@ -44,29 +44,17 @@ def extract_channels(event):
 
     # Process 'channels' field
     if isinstance(event.get('channels'), dict):  # If 'channels' is a dictionary
-        for channel in event['channels'].values():
-            if isinstance(channel, dict) and 'channel_name' in channel:
-                channel_name = channel['channel_name']
-                channels_list.append(channel_name)
+        channels_list += [channel['channel_name'] for channel in event['channels'].values() if isinstance(channel, dict) and 'channel_name' in channel]
     elif isinstance(event.get('channels'), list):  # If 'channels' is a list
-        for channel in event['channels']:
-            if isinstance(channel, dict) and 'channel_name' in channel:
-                channel_name = channel['channel_name']
-                channels_list.append(channel_name)
+        channels_list += [channel['channel_name'] for channel in event['channels'] if isinstance(channel, dict) and 'channel_name' in channel]
     elif isinstance(event.get('channels'), str):  # If 'channels' is a string
         channels_list.append(event['channels'])
 
     # Process 'channels2' field
     if isinstance(event.get('channels2'), dict):  # If 'channels2' is a dictionary
-        for channel in event['channels2'].values():
-            if isinstance(channel, dict) and 'channel_name' in channel:
-                channel_name = channel['channel_name']
-                channels_list.append(channel_name)
+        channels_list += [channel['channel_name'] for channel in event['channels2'].values() if isinstance(channel, dict) and 'channel_name' in channel]
     elif isinstance(event.get('channels2'), list):  # If 'channels2' is a list
-        for channel in event['channels2']:
-            if isinstance(channel, dict) and 'channel_name' in channel:
-                channel_name = channel['channel_name']
-                channels_list.append(channel_name)
+        channels_list += [channel['channel_name'] for channel in event['channels2'] if isinstance(channel, dict) and 'channel_name' in channel]
     elif isinstance(event.get('channels2'), str):  # If 'channels2' is a string
         channels_list.append(event['channels2'])
 
@@ -102,7 +90,7 @@ def format_event(event, category):
                 f'<span class="vs">vs</span>'
                 f'<span class="team-right">{team_2}</span>'
                 f'</div>'
-                f'<p class="time">⏰ {local_time}</p>'  # Display local time
+                f'<p class="time">â° {local_time}</p>'  # Display local time
                 f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
                 f'</div>\n'
             )
@@ -115,42 +103,94 @@ def format_event(event, category):
             f'<div class="card single-event" data-sport="{category}">'
             f'<h3>{category_name}</h3>'
             f'<p class="event-name">{single_event.upper()}</p>'  # Convert single events to uppercase
-            f'<p class="time">⏰ {local_time}</p>'  # Display local time
+            f'<p class="time">â° {local_time}</p>'  # Display local time
             f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
             f'</div>\n'
         )
+
+    elif 'Season' in event_text or 'Episode' in event_text:  # TV Shows/Movies
+        if 'Season' in event_text and 'Episode' in event_text:
+            title, episode = event_text.split(', Episode')
+            return (
+                f'<div class="card" data-sport="{category}">'
+                f'<h3>{title.strip()}</h3>'
+                f'<p class="event-name">Episode {episode.strip().upper()}</p>'  # Convert episode name to uppercase
+                f'<p class="time">â° {local_time}</p>'  # Display local time
+                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+                f'</div>\n'
+            )
+        else:
+            return (
+                f'<div class="card" data-sport="{category}">'
+                f'<h3>{event_text.upper()}</h3>'  # Convert event text to uppercase
+                f'<p class="event-name">{category.upper()}</p>'  # Convert category to uppercase
+                f'<p class="time">â° {local_time}</p>'  # Display local time
+                f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
+                f'</div>\n'
+            )
 
     else:  # Other events (e.g., WWE NXT) or invalid events
         return (
             f'<div class="card" data-sport="{category}">'
             f'<h3>{event_text.upper()}</h3>'  # Convert event text to uppercase
             f'<p class="event-name">{category.upper()}</p>'  # Convert category to uppercase
-            f'<p class="time">⏰ {local_time}</p>'  # Display local time
+            f'<p class="time">â° {local_time}</p>'  # Display local time
             f'<p class="channels">Channels: {", ".join(channels) if channels else "N/A"}</p>'
             f'</div>\n'
         )
 
-# Function to prioritize Soccer events based on keywords
-def prioritize_soccer_events(events):
-    # List of keywords for prioritization
-    keywords = [
-        "England", "Spain", "Italy", "France", "Germany", 
-        "Bundesliga", "Saudi Arabia", "Saudi", "Arabia", "Turkey"
-    ]
+# Function to load links from a file
+def load_links(file_path):
+    links = {}
+    with open(file_path, "r", encoding="utf-8") as file:
+        content = file.read()
+    
+    matches = re.findall(r"Channel Name:\s*(.*?)\nChannel URL:\s*(.*?)\n", content)
+    for name, url in matches:
+        clean_name = simplify_channel_name(name)  # Ù†Ø§Ù… Ø³Ø§Ø¯Ù‡â€ŒØ´Ø¯Ù‡ Ø¨Ø±Ø§ÛŒ Ø¬Ø³ØªØ¬Ùˆ
+        links[clean_name] = url
+    return links
 
-    # Separate events into prioritized and non-prioritized
-    prioritized_events = []
-    non_prioritized_events = []
+# Function to simplify channel names
+def simplify_channel_name(name):
+    """
+    Ù†Ø§Ù… Ú©Ø§Ù†Ø§Ù„ Ø±Ø§ Ø¨Ù‡ ÙØ±Ù…Øª Ø³Ø§Ø¯Ù‡ ØªØ¨Ø¯ÛŒÙ„ Ù…ÛŒâ€ŒÚ©Ù†Ø¯ØŒ 
+    ÙÙ‚Ø· Ú©Ù„Ù…Ø§Øª Ø§ØµÙ„ÛŒ Ø±Ø§ Ù†Ú¯Ù‡ Ù…ÛŒâ€ŒØ¯Ø§Ø±Ø¯ Ùˆ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ø§Ø¶Ø§ÙÛŒ Ø±Ø§ Ø­Ø°Ù Ù…ÛŒâ€ŒÚ©Ù†Ø¯.
+    """
+    name = name.lower()
+    name = re.sub(r"(fhd|hd|sd|4k|uk|us|extra|plus|live|premium|main event)", "", name)  # Ø­Ø°Ù Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ø§Ø¶Ø§ÙÛŒ
+    name = re.sub(r"[^a-z0-9]+", " ", name).strip()  # Ø­Ø°Ù Ú©Ø§Ø±Ø§Ú©ØªØ±Ù‡Ø§ÛŒ Ø®Ø§Øµ
+    return name
 
-    for event in events:
-        event_text = event.get('event', '').lower()
-        if any(keyword.lower() in event_text for keyword in keywords):
-            prioritized_events.append(event)
-        else:
-            non_prioritized_events.append(event)
+# Function to find matching channel URL
+def find_matching_channel(channel_name, links):
+    clean_name = simplify_channel_name(channel_name)
+    
+    for link_name in links:
+        if clean_name in link_name:  # Ø¬Ø³ØªØ¬ÙˆÛŒ Ø³Ø§Ø¯Ù‡ Ù…Ø§Ù†Ù†Ø¯ Notepad
+            return links[link_name]
+    
+    return None
 
-    # Combine the lists with prioritized events first
-    return prioritized_events + non_prioritized_events
+# Function to process HTML and add links to channels
+def process_html(file_path, links):
+    with open(file_path, "r", encoding="utf-8") as file:
+        soup = BeautifulSoup(file, "html.parser")
+    
+    for p in soup.find_all("p", class_="channels"):
+        new_html = []
+        parts = p.text.split(", ")
+        for part in parts:
+            url = find_matching_channel(part, links)
+            if url:
+                new_html.append(f'<a href="#" class="channel-link" data-video-url="{url}">{part}</a>')
+            else:
+                new_html.append(part)
+        p.clear()
+        p.append(BeautifulSoup(", ".join(new_html), "html.parser"))
+    
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(str(soup))
 
 # Main function to process data and write to index.html
 def main():
@@ -160,7 +200,7 @@ def main():
         print("Failed to fetch data. Exiting...")
         return
 
-    # Define fixed categories (TV Shows removed)
+    # Define fixed categories
     fixed_categories = ['all', 'Soccer', 'Volleyball', 'Basketball', 'Handball', 'Tennis', 'Hockey', 'Cricket', 'Boxing', 'WWE']
 
     # Extract all unique categories from the JSON data
@@ -184,21 +224,24 @@ def main():
     # Capitalize multi-part categories (e.g., "Water Sport" -> "Water Sport")
     more_categories = [category.title() for category in more_categories]
 
+    # Ensure "TV Shows" is always the first item in More Events
+    more_categories.insert(0, "TV Shows") if "TV Shows" in more_categories else more_categories.append("TV Shows")
+
     # Fix "Wwe" to "WWE" in primary categories
     primary_categories = [category.upper() if category.lower() == "wwe" else category.capitalize() for category in primary_categories]
 
     # Open the index.html file for writing
     with open('index.html', 'w', encoding='utf-8') as output_file:
-        # Write HTML document
         output_file.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n')
         output_file.write('<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n')
         output_file.write('<title>Sportify - Your Sports Events Hub</title>\n')
         output_file.write('<link rel="stylesheet" href="styles.css">\n')
+        output_file.write('<link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />\n')  # Video.js CSS
         output_file.write('</head>\n<body>\n')
 
         # Header Section
         output_file.write('<header><div class="container"><h1>Sportify</h1>')
-        output_file.write('<div class="menu-icon">☰</div><nav><ul class="nav-links">')
+        output_file.write('<div class="menu-icon">â˜°</div><nav><ul class="nav-links">')
 
         # Write primary categories to the navigation menu
         for category in primary_categories:
@@ -220,20 +263,12 @@ def main():
         # Traverse the JSON structure and assign events to appropriate categories
         for date, events in json_data.items():
             for category, event_list in events.items():
-                # Skip TV Shows category entirely
-                if "TV Shows" in category:
-                    continue
-
                 # Determine the final category for this event
                 final_category = category
                 for fixed_category in fixed_categories[1:]:  # Skip 'all'
                     if fixed_category.lower() in category.lower():
                         final_category = fixed_category
                         break
-
-                # Prioritize Soccer events
-                if final_category.lower() == "soccer":
-                    event_list = prioritize_soccer_events(event_list)
 
                 for event in event_list:
                     formatted_event = format_event(event, final_category.lower())
@@ -245,25 +280,77 @@ def main():
         # Footer Section
         output_file.write('<footer><div class="container"><p>&copy; 2025 Sportify. All rights reserved.</p></div></footer>\n')
 
-        # Add JavaScript for search functionality
-        output_file.write('<script>\n')
-        output_file.write('document.getElementById("searchInput").addEventListener("input", function() {\n')
-        output_file.write('    const searchTerm = this.value.toLowerCase();\n')
-        output_file.write('    const cards = document.querySelectorAll(".card");\n')
-        output_file.write('    cards.forEach(card => {\n')
-        output_file.write('        const eventText = card.textContent.toLowerCase();\n')
-        output_file.write('        if (eventText.includes(searchTerm)) {\n')
-        output_file.write('            card.style.display = "block";\n')
-        output_file.write('        } else {\n')
-        output_file.write('            card.style.display = "none";\n')
-        output_file.write('        }\n')
-        output_file.write('    });\n')
-        output_file.write('});\n')
-        output_file.write('</script>\n')
+        # Video Player HTML
+        output_file.write('''
+            <!-- Video Player -->
+            <div id="videoPlayer" class="player">
+                <div class="player-content">
+                    <span class="close-player">&times;</span>
+                    <video id="videoStream" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
+                        <source src="" type="application/x-mpegURL">
+                    </video>
+                </div>
+            </div>
+        ''')
+
+        # JavaScript for the player
+        output_file.write('''
+            <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+            <script>
+                // Get the player and video element
+                const player = document.getElementById("videoPlayer");
+                const videoElement = document.getElementById("videoStream");
+                const closePlayerBtn = document.querySelector(".close-player");
+
+                // Initialize Video.js player
+                const videoPlayer = videojs(videoElement);
+
+                // Function to open the player with the video URL
+                function openPlayer(videoUrl) {
+                    videoPlayer.src({ type: "application/x-mpegURL", src: videoUrl }); // Set the video URL
+                    player.style.display = "block"; // Show the player
+                    videoPlayer.play(); // Start playing the video
+                }
+
+                // Function to close the player
+                function closePlayer() {
+                    videoPlayer.pause(); // Pause the video
+                    videoPlayer.src(""); // Clear the video source
+                    player.style.display = "none"; // Hide the player
+                }
+
+                // Close the player when the user clicks on the close button
+                closePlayerBtn.addEventListener("click", closePlayer);
+
+                // Close the player when the user clicks outside of it
+                window.addEventListener("click", (event) => {
+                    if (event.target === player) {
+                        closePlayer();
+                    }
+                });
+
+                // Add click event to all channel links
+                document.addEventListener("DOMContentLoaded", () => {
+                    const channelLinks = document.querySelectorAll(".channels a");
+                    channelLinks.forEach((link) => {
+                        link.addEventListener("click", (e) => {
+                            e.preventDefault(); // Prevent default link behavior
+                            const videoUrl = link.getAttribute("data-video-url"); // Get the video URL
+                            openPlayer(videoUrl); // Open the player with the video
+                        });
+                    });
+                });
+            </script>
+        ''')
 
         output_file.write('</body>\n</html>')
 
     print("index.html has been successfully created.")
+
+    # Process the HTML to add channel links
+    links = load_links("links.txt")
+    process_html("index.html", links)
+    print("index.html updated with channel links!")
 
 if __name__ == "__main__":
     main()
