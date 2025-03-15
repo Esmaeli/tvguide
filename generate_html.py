@@ -2,7 +2,7 @@ import json
 import re
 import requests
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 from tzlocal import get_localzone  # Import get_localzone from tzlocal
 
 # Function to fetch data from the internet
@@ -160,7 +160,7 @@ def main():
         print("Failed to fetch data. Exiting...")
         return
 
-    # Define fixed categories
+    # Define fixed categories (TV Shows removed)
     fixed_categories = ['all', 'Soccer', 'Volleyball', 'Basketball', 'Handball', 'Tennis', 'Hockey', 'Cricket', 'Boxing', 'WWE']
 
     # Extract all unique categories from the JSON data
