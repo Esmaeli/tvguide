@@ -2,7 +2,7 @@ import json
 import re
 import requests
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 from bs4 import BeautifulSoup
 
 # Function to fetch data from the internet
@@ -16,7 +16,7 @@ def fetch_data_from_url(url):
         return None
 
 # Function to convert UK time to local user time
-def convert_to_local_time(uk_time_str):
+def convert_to_local_time(uk_time_str, local_tz):
     try:
         if not uk_time_str or uk_time_str == 'N/A':  # Check for empty or invalid time
             return 'N/A'
@@ -28,8 +28,7 @@ def convert_to_local_time(uk_time_str):
         # Assume UK is UTC+0
         utc_time = pytz.utc.localize(datetime.combine(datetime.today(), uk_time.time()))
 
-        # Get the local timezone
-        local_tz = pytz.timezone('Asia/Tehran')  # Change 'Asia/Tehran' to your desired timezone
+        # Convert to local timezone
         local_time = utc_time.astimezone(local_tz)
 
         # Return only the time in HH:MM format
@@ -61,7 +60,7 @@ def extract_channels(event):
     return channels_list
 
 # Function to detect the type of event and format it for HTML
-def format_event(event, category):
+def format_event(event, category, local_tz):
     event_text = event.get('event', '')  # Use .get() to avoid KeyError
     time = event.get('time', 'N/A')  # Provide a default value if 'time' is missing
 
@@ -69,7 +68,7 @@ def format_event(event, category):
     channels = extract_channels(event)
 
     # Convert UK time to local time
-    local_time = convert_to_local_time(time)
+    local_time = convert_to_local_time(time, local_tz)
 
     # Detect the type of event (using Regular Expression)
     if ':' in event_text and re.search(r'\b(vs|\.vs|x)\b', event_text, re.IGNORECASE):  # Sporting event with two teams
@@ -139,59 +138,6 @@ def format_event(event, category):
             f'</div>\n'
         )
 
-# Function to load links from a file
-def load_links(file_path):
-    links = {}
-    with open(file_path, "r", encoding="utf-8") as file:
-        content = file.read()
-    
-    matches = re.findall(r"Channel Name:\s*(.*?)\nChannel URL:\s*(.*?)\n", content)
-    for name, url in matches:
-        clean_name = simplify_channel_name(name)  # Ù†Ø§Ù… Ø³Ø§Ø¯Ù‡â€ŒØ´Ø¯Ù‡ Ø¨Ø±Ø§ÛŒ Ø¬Ø³ØªØ¬Ùˆ
-        links[clean_name] = url
-    return links
-
-# Function to simplify channel names
-def simplify_channel_name(name):
-    """
-    Ù†Ø§Ù… Ú©Ø§Ù†Ø§Ù„ Ø±Ø§ Ø¨Ù‡ ÙØ±Ù…Øª Ø³Ø§Ø¯Ù‡ ØªØ¨Ø¯ÛŒÙ„ Ù…ÛŒâ€ŒÚ©Ù†Ø¯ØŒ 
-    ÙÙ‚Ø· Ú©Ù„Ù…Ø§Øª Ø§ØµÙ„ÛŒ Ø±Ø§ Ù†Ú¯Ù‡ Ù…ÛŒâ€ŒØ¯Ø§Ø±Ø¯ Ùˆ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ø§Ø¶Ø§ÙÛŒ Ø±Ø§ Ø­Ø°Ù Ù…ÛŒâ€ŒÚ©Ù†Ø¯.
-    """
-    name = name.lower()
-    name = re.sub(r"(fhd|hd|sd|4k|uk|us|extra|plus|live|premium|main event)", "", name)  # Ø­Ø°Ù Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ø§Ø¶Ø§ÙÛŒ
-    name = re.sub(r"[^a-z0-9]+", " ", name).strip()  # Ø­Ø°Ù Ú©Ø§Ø±Ø§Ú©ØªØ±Ù‡Ø§ÛŒ Ø®Ø§Øµ
-    return name
-
-# Function to find matching channel URL
-def find_matching_channel(channel_name, links):
-    clean_name = simplify_channel_name(channel_name)
-    
-    for link_name in links:
-        if clean_name in link_name:  # Ø¬Ø³ØªØ¬ÙˆÛŒ Ø³Ø§Ø¯Ù‡ Ù…Ø§Ù†Ù†Ø¯ Notepad
-            return links[link_name]
-    
-    return None
-
-# Function to process HTML and add links to channels
-def process_html(file_path, links):
-    with open(file_path, "r", encoding="utf-8") as file:
-        soup = BeautifulSoup(file, "html.parser")
-    
-    for p in soup.find_all("p", class_="channels"):
-        new_html = []
-        parts = p.text.split(", ")
-        for part in parts:
-            url = find_matching_channel(part, links)
-            if url:
-                new_html.append(f'<a href="#" class="channel-link" data-video-url="{url}">{part}</a>')
-            else:
-                new_html.append(part)
-        p.clear()
-        p.append(BeautifulSoup(", ".join(new_html), "html.parser"))
-    
-    with open(file_path, "w", encoding="utf-8") as file:
-        file.write(str(soup))
-
 # Main function to process data and write to index.html
 def main():
     url = "https://daddylive.mp/schedule/schedule-generated.json"
@@ -230,13 +176,16 @@ def main():
     # Fix "Wwe" to "WWE" in primary categories
     primary_categories = [category.upper() if category.lower() == "wwe" else category.capitalize() for category in primary_categories]
 
+    # Get the local timezone from the user
+    local_tz = pytz.timezone(input("Enter your timezone (e.g., 'Asia/Tehran'): "))
+
     # Open the index.html file for writing
     with open('index.html', 'w', encoding='utf-8') as output_file:
         output_file.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n')
         output_file.write('<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n')
         output_file.write('<title>Sportify - Your Sports Events Hub</title>\n')
         output_file.write('<link rel="stylesheet" href="styles.css">\n')
-        output_file.write('<link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />\n')  # Video.js CSS
+        output_file.write('<script src="script.js"></script>\n')
         output_file.write('</head>\n<body>\n')
 
         # Header Section
@@ -271,7 +220,7 @@ def main():
                         break
 
                 for event in event_list:
-                    formatted_event = format_event(event, final_category.lower())
+                    formatted_event = format_event(event, final_category.lower(), local_tz)
                     if formatted_event:  # Ensure the event is not None
                         output_file.write(formatted_event)
 
@@ -280,77 +229,9 @@ def main():
         # Footer Section
         output_file.write('<footer><div class="container"><p>&copy; 2025 Sportify. All rights reserved.</p></div></footer>\n')
 
-        # Video Player HTML
-        output_file.write('''
-            <!-- Video Player -->
-            <div id="videoPlayer" class="player">
-                <div class="player-content">
-                    <span class="close-player">&times;</span>
-                    <video id="videoStream" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
-                        <source src="" type="application/x-mpegURL">
-                    </video>
-                </div>
-            </div>
-        ''')
-
-        # JavaScript for the player
-        output_file.write('''
-            <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-            <script>
-                // Get the player and video element
-                const player = document.getElementById("videoPlayer");
-                const videoElement = document.getElementById("videoStream");
-                const closePlayerBtn = document.querySelector(".close-player");
-
-                // Initialize Video.js player
-                const videoPlayer = videojs(videoElement);
-
-                // Function to open the player with the video URL
-                function openPlayer(videoUrl) {
-                    videoPlayer.src({ type: "application/x-mpegURL", src: videoUrl }); // Set the video URL
-                    player.style.display = "block"; // Show the player
-                    videoPlayer.play(); // Start playing the video
-                }
-
-                // Function to close the player
-                function closePlayer() {
-                    videoPlayer.pause(); // Pause the video
-                    videoPlayer.src(""); // Clear the video source
-                    player.style.display = "none"; // Hide the player
-                }
-
-                // Close the player when the user clicks on the close button
-                closePlayerBtn.addEventListener("click", closePlayer);
-
-                // Close the player when the user clicks outside of it
-                window.addEventListener("click", (event) => {
-                    if (event.target === player) {
-                        closePlayer();
-                    }
-                });
-
-                // Add click event to all channel links
-                document.addEventListener("DOMContentLoaded", () => {
-                    const channelLinks = document.querySelectorAll(".channels a");
-                    channelLinks.forEach((link) => {
-                        link.addEventListener("click", (e) => {
-                            e.preventDefault(); // Prevent default link behavior
-                            const videoUrl = link.getAttribute("data-video-url"); // Get the video URL
-                            openPlayer(videoUrl); // Open the player with the video
-                        });
-                    });
-                });
-            </script>
-        ''')
-
         output_file.write('</body>\n</html>')
 
     print("index.html has been successfully created.")
-
-    # Process the HTML to add channel links
-    links = load_links("links.txt")
-    process_html("index.html", links)
-    print("index.html updated with channel links!")
 
 if __name__ == "__main__":
     main()
